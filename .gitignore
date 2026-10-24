@@ -1,0 +1,9 @@
+# Generated
+_site/
+node_modules/
+
+# Local clutter and secrets never belong in this public repo
+.DS_Store
+*.log
+.env
+.env.*

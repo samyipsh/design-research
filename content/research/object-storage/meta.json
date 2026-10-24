@@ -1,0 +1,10 @@
+{
+  "title": "Object storage for web apps",
+  "summary": "What object storage is, how S3 became the convention, how browser uploads work in practice, and whether a solo developer should run their own bucket or use UploadThing.",
+  "snapshot": "2026-10-18",
+  "reviewed": "2026-10-19",
+  "companions": {
+    "object-storage-timeline.html": "1998 → 2026, filterable by track. Best after chapter 02.",
+    "upload-flows-explained.html": "Step through proxy, direct-to-bucket and UploadThing v7 flows, plus who is responsible for what. Best alongside chapters 04, 06 and 08."
+  }
+}

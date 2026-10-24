@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Upload Flows Explained: Proxy vs Direct-to-Bucket vs UploadThing</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1f2328; --muted: #5b636e; --card: #ffffff; --line: #d9d6cf;
+    --control: #1a5fb4; --data: #c2410c; --check-bg: #f3f0e8; --hl: #fff3c4; --focus: #1a5fb4;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #16181c; --fg: #e8e6e3; --muted: #a3a9b1; --card: #1f2227; --line: #3a3f46;
+      --control: #8ab4f8; --data: #f59e5b; --check-bg: #2a2e35; --hl: #3d3520; --focus: #8ab4f8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 980px; margin: 0 auto; padding: 24px 18px 64px; }
+  h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 6px; }
+  h2 { font-size: 1.2rem; margin: 30px 0 10px; }
+  h3 { font-size: 1.05rem; margin: 0 0 6px; }
+  .sub, .muted { color: var(--muted); }
+  a { color: var(--focus); }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  code { font-size: .92em; }
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; background: var(--card);
+    border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-size: .92rem; }
+  .legend svg { vertical-align: middle; margin-right: 6px; }
+  .tabs { display: none; gap: 6px; flex-wrap: wrap; margin: 18px 0 0; }
+  .js .tabs { display: flex; }
+  .tabs button { font: inherit; font-size: .95rem; padding: 8px 14px; border: 1px solid var(--line); border-bottom: none;
+    border-radius: 10px 10px 0 0; background: var(--bg); color: var(--fg); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--card); font-weight: 650; box-shadow: inset 0 3px 0 var(--control); }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 0 10px 10px 10px; padding: 16px; margin-bottom: 18px; }
+  .no-js-title { display: block; }
+  .js .no-js-title { display: none; }
+  .verdict { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin: 8px 0 12px; }
+  .verdict div { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: .93rem; }
+  .verdict b { display: block; margin-bottom: 2px; }
+  .controls { display: none; gap: 8px; align-items: center; flex-wrap: wrap; margin: 6px 0 8px; }
+  .js .controls { display: flex; }
+  .controls button { font: inherit; font-size: .9rem; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--bg); color: var(--fg); cursor: pointer; }
+  .status { color: var(--muted); font-size: .9rem; }
+  .diagram { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 6px; }
+  .diagram svg { display: block; }
+  .hint { font-size: .85rem; color: var(--muted); margin: 4px 0 0; }
+  ol.steps { margin: 12px 0 0; padding-left: 1.6em; }
+  ol.steps li { padding: 6px 8px; border-radius: 6px; margin: 2px 0; }
+  ol.steps li[aria-current="step"] { background: var(--hl); }
+  ol.steps .k { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin-right: 6px; }
+  ol.steps .k-data { color: var(--data); } ol.steps .k-control, ol.steps .k-reply { color: var(--control); } ol.steps .k-check { color: var(--muted); }
+  ol.steps .risk { display: block; font-size: .88rem; color: var(--muted); }
+  ol.steps .risk::before { content: "Watch out: "; font-weight: 600; }
+  /* SVG */
+  .lane-head rect { fill: var(--card); stroke: var(--line); }
+  .lane-head text { fill: var(--fg); font-size: 13px; font-weight: 650; }
+  .lifeline { stroke: var(--line); stroke-dasharray: 3 4; }
+  .step text { fill: var(--fg); font-size: 12px; }
+  .kind-control line { stroke: var(--control); stroke-width: 1.8; }
+  .kind-reply line { stroke: var(--control); stroke-width: 1.5; stroke-dasharray: 6 4; }
+  .kind-data line { stroke: var(--data); stroke-width: 4; }
+  .kind-data text { fill: var(--data); font-weight: 700; }
+  .kind-check rect { fill: var(--check-bg); stroke: var(--line); }
+  .mk-control { fill: var(--control); } .mk-data { fill: var(--data); }
+  .step { transition: opacity .15s; }
+  .dim .step { opacity: .18; }
+  .dim .step.current { opacity: 1; }
+  .step.current line { stroke-width: 3.5; }
+  .step.current.kind-data line { stroke-width: 6; }
+  .step.current rect { stroke: var(--fg); stroke-width: 1.5; }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; background: var(--card); }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+  thead th { position: sticky; top: 0; background: var(--card); }
+  tbody th { font-weight: 600; min-width: 160px; }
+  td { min-width: 170px; }
+  .you { font-weight: 700; }
+  .back { margin: 0 0 14px; font-size: .9rem; }
+  .back a { color: var(--muted); }
+  footer { margin-top: 28px; color: var(--muted); font-size: .9rem; }
+  footer li { margin: 3px 0; }
+</style>
+</head>
+<body>
+<main>
+  <nav class="back" aria-label="Library"><a href="./">← Object storage for web apps</a></nav>
+  <h1>Upload flows explained</h1>
+  <p class="sub">Companion to the notes <a href="04-browser-uploads-in-practice/">04 Browser Uploads in Practice</a>, <a href="06-uploadthing-what-it-actually-is/">06 UploadThing: What It Actually Is</a> and <a href="08-decision-own-bucket-vs-uploadthing/">08 Decision: Own Bucket vs UploadThing</a>. As of 2026-10-18. Pick a flow, then step through it. The numbered list under each diagram is the full explanation, and the diagram is its map.</p>
+
+  <div class="legend" aria-label="Legend">
+    <span><svg width="46" height="12" aria-hidden="true"><line x1="2" y1="6" x2="44" y2="6" style="stroke:var(--control);stroke-width:2"/></svg><b>Control</b>: a request that decides or records something</span>
+    <span><svg width="46" height="12" aria-hidden="true"><line x1="2" y1="6" x2="44" y2="6" style="stroke:var(--control);stroke-width:1.5;stroke-dasharray:6 4"/></svg><b>Reply</b>: a response on the control path</span>
+    <span><svg width="46" height="12" aria-hidden="true"><line x1="2" y1="6" x2="44" y2="6" style="stroke:var(--data);stroke-width:4"/></svg><b>DATA</b>: the file's bytes moving</span>
+    <span><svg width="30" height="16" aria-hidden="true"><rect x="1" y="1" width="28" height="14" rx="3" style="fill:var(--check-bg);stroke:var(--line)"/></svg><b>Check</b>: work done inside one box</span>
+  </div>
+
+  <div class="tabs" role="tablist" aria-label="Upload flows">
+    <button type="button" role="tab" id="tab-proxy" aria-controls="panel-proxy" aria-selected="false">A · Proxy through your server</button>
+    <button type="button" role="tab" id="tab-direct" aria-controls="panel-direct" aria-selected="true">B · Direct to your bucket</button>
+    <button type="button" role="tab" id="tab-ut" aria-controls="panel-ut" aria-selected="false">C · UploadThing v7</button>
+  </div>
+
+  <!-- Panel A -->
+  <section class="panel" id="panel-proxy" role="tabpanel" aria-labelledby="tab-proxy" data-lanes="Browser|Your server|Your DB|Bucket">
+    <h2 class="no-js-title">A · Proxy through your server</h2>
+    <div class="verdict">
+      <div><b>Good for</b>Small files on a long-running server; files your server generates; admin tools. Your server sees the real bytes, and stores exactly what it checked. No browser-to-storage CORS or presigned URLs are needed (your server's SDK still signs its own storage requests).</div>
+      <div><b>Costs</b>Bytes cross your server twice. Serverless body limits (Vercel Functions: 4.5 MB, then <code>413</code>). Memory and timeouts. You still have to reconcile a storage write whose DB write failed.</div>
+    </div>
+    <div class="controls"><button type="button" data-act="prev">◀ Prev</button><button type="button" data-act="next">Next ▶</button><button type="button" data-act="all">Show all</button><span class="status" aria-live="polite"></span></div>
+    <div class="diagram"></div>
+    <p class="hint">On small screens, scroll the diagram sideways.</p>
+    <ol class="steps">
+      <li data-from="0" data-to="1" data-kind="data" data-label="DATA: POST file"><span class="k k-data">data</span>The browser sends the whole file to your endpoint as a form upload.<span class="risk">Serverless platforms cap request bodies. Vercel Functions reject bodies over 4.5 MB.</span></li>
+      <li data-from="1" data-to="1" data-kind="check" data-label="auth + real size/type"><span class="k k-check">check</span>Your server authenticates the user and can inspect the actual bytes (size, magic bytes) before storing anything. This is the main advantage of proxying.</li>
+      <li data-from="1" data-to="3" data-kind="data" data-label="DATA: PutObject"><span class="k k-data">data</span>Your server writes the file to the bucket through the storage SDK, which signs the request with your server's credentials. The bytes travel a second time.</li>
+      <li data-from="3" data-to="1" data-kind="reply" data-label="success + ETag"><span class="k k-reply">reply</span>Storage confirms the write. Your server knows it finished, but still has to record it.</li>
+      <li data-from="1" data-to="2" data-kind="control" data-label="insert row (ready)"><span class="k k-control">control</span>Your server records the file (owner, key, verified size and type) as ready.<span class="risk">If this fails after the storage write (crash, DB error), the object is an orphan. You still need reconciliation or cleanup.</span></li>
+      <li data-from="1" data-to="0" data-kind="reply" data-label="file id"><span class="k k-reply">reply</span>The browser gets the file's ID.</li>
+    </ol>
+  </section>
+
+  <!-- Panel B -->
+  <section class="panel" id="panel-direct" role="tabpanel" aria-labelledby="tab-direct" data-lanes="Browser|Your server|Your DB|Bucket">
+    <h2 class="no-js-title">B · Direct to your bucket (presigned URL)</h2>
+    <div class="verdict">
+      <div><b>Good for</b>Most user uploads. Your server stays on the control path only. The core flow uses operations most S3-compatible providers document (check presigned POST and conditional-header support per provider).</div>
+      <div><b>You build</b>Sign, finalize and accept steps, bucket CORS, lifecycle rules, and a sweep for abandoned uploads. Agents can draft this from well-documented patterns. You still review it and run it.</div>
+    </div>
+    <div class="controls"><button type="button" data-act="prev">◀ Prev</button><button type="button" data-act="next">Next ▶</button><button type="button" data-act="all">Show all</button><span class="status" aria-live="polite"></span></div>
+    <div class="diagram"></div>
+    <p class="hint">On small screens, scroll the diagram sideways.</p>
+    <ol class="steps">
+      <li data-from="0" data-to="1" data-kind="control" data-label="may I upload? (claims)"><span class="k k-control">control</span>The browser asks to upload, sending the file's <em>claimed</em> name, size and type.<span class="risk">These are claims. The browser can lie.</span></li>
+      <li data-from="1" data-to="1" data-kind="check" data-label="auth + check claim"><span class="k k-check">check</span>Your server authenticates the user, checks this user may upload this kind of file, applies limits to the claim, and rate-limits.</li>
+      <li data-from="1" data-to="2" data-kind="control" data-label="insert row: pending"><span class="k k-control">control</span>Your server creates a <code>pending</code> row with a server-generated upload key (e.g. <code>incoming/01J9…</code>), so every signed upload is traceable.</li>
+      <li data-from="1" data-to="1" data-kind="check" data-label="sign URL (local HMAC)"><span class="k k-check">check</span>Your server signs a short-lived PUT (or, on AWS, a POST whose policy adds a size range) for <em>exactly that key</em>, not a whole prefix. The signing is local, though fetching or refreshing the credentials may need a network call. Prefer scoped, temporary credentials.<span class="risk">The URL is a reusable bearer permission until it expires, so keep expiry short. R2 documents no presigned POST, so enforce size at finalize there.</span></li>
+      <li data-from="1" data-to="0" data-kind="reply" data-label="upload URL (+fields)"><span class="k k-reply">reply</span>The browser receives the URL (and form fields if using POST).</li>
+      <li data-from="0" data-to="3" data-kind="data" data-label="DATA: PUT/POST bytes"><span class="k k-data">data</span>The browser uploads the bytes straight to the bucket, sending a CORS preflight first when the request needs one.<span class="risk">If it fails in the browser but works with curl, the bucket's CORS rules are a good first check. They're not the only possible cause.</span></li>
+      <li data-from="3" data-to="0" data-kind="reply" data-label="success + ETag"><span class="k k-reply">reply</span>Storage confirms (PUT returns 200; POST may return 204 or 201 depending on configuration). It doesn't tell <em>your server</em> anything.</li>
+      <li data-from="0" data-to="1" data-kind="control" data-label="complete: file id"><span class="k k-control">control</span>The browser tells your server it's done.<span class="risk">It may never arrive (closed tab), which is why lifecycle expiry and the sweep exist.</span></li>
+      <li data-from="1" data-to="3" data-kind="control" data-label="HEAD + first bytes"><span class="k k-control">control</span>Finalize: <code>HEAD</code> shows the object exists, its real size and its stored metadata (the declared type, which proves nothing). Reading the first bytes checks the actual format. On S3 this works immediately after upload (strong consistency since 2020).</li>
+      <li data-from="1" data-to="3" data-kind="control" data-label="publish checked snapshot"><span class="k k-control">control</span>Accept: publish the exact validated snapshot or image derivative to a server-controlled key like <code>files/01J9…</code>.<span class="risk">Pin a version or use matching conditional reads and copying. Checking a mutable key and copying its latest contents still races with another upload. See note 04 §4. Create-only or checksum-pinned uploads are alternatives where supported.</span></li>
+      <li data-from="1" data-to="2" data-kind="control" data-label="status: ready"><span class="k k-control">control</span>The row becomes <code>ready</code> and points at the accepted key. If checks failed, it's marked <code>rejected</code>. Finalize and accept should be idempotent.</li>
+      <li data-from="1" data-to="1" data-kind="check" data-label="later: cleanup"><span class="k k-check">check</span>A lifecycle rule expires leftovers under <code>incoming/</code> after a day and aborts abandoned multipart uploads. A scheduled sweep marks stale <code>pending</code> rows as abandoned.</li>
+    </ol>
+  </section>
+
+  <!-- Panel C -->
+  <section class="panel" id="panel-ut" role="tabpanel" aria-labelledby="tab-ut" data-lanes="Browser|Your server|Your DB|UT ingest|UT storage + CDN">
+    <h2 class="no-js-title">C · UploadThing v7</h2>
+    <div class="verdict">
+      <div><b>What it removes</b>Signing details, the completion signal (signed callback), resumable uploads, upload UI components, and (as advertised) separate bandwidth billing.</div>
+      <div><b>What changes</b>Files go to UploadThing-managed storage (default AWS us-west-2), not a bucket you configure, and are served from <code>&lt;APP_ID&gt;.ufs.sh</code>. Your callback endpoint must be publicly reachable. Bring-your-own-bucket, self-hosting and bulk export aren't documented as of 2026-10-18, which isn't proof they're impossible.</div>
+    </div>
+    <div class="controls"><button type="button" data-act="prev">◀ Prev</button><button type="button" data-act="next">Next ▶</button><button type="button" data-act="all">Show all</button><span class="status" aria-live="polite"></span></div>
+    <div class="diagram"></div>
+    <p class="hint">On small screens, scroll the diagram sideways.</p>
+    <ol class="steps">
+      <li data-from="0" data-to="1" data-kind="control" data-label="request upload (route)"><span class="k k-control">control</span>The browser calls your <code>/api/uploadthing</code> route for a named file route, with the file's claimed name, size and type.</li>
+      <li data-from="1" data-to="1" data-kind="check" data-label="middleware: YOUR auth"><span class="k k-check">check</span>Your <code>middleware</code> runs your authentication. The route config checks type, size and count.<span class="risk">The SDK matches type using the browser-supplied MIME (falling back to the filename), with no byte inspection.</span></li>
+      <li data-from="1" data-to="1" data-kind="check" data-label="sign URL (UT key)"><span class="k k-check">check</span>Your server signs an ingest URL (HMAC-SHA256 with your UploadThing API key) covering file key, name, size, route and expiry. A size mismatch makes the upload fail.</li>
+      <li data-from="1" data-to="3" data-kind="control" data-label="register keys + callback URL"><span class="k k-control">control</span>Your server registers the file keys, metadata and callback URL with the ingest service.</li>
+      <li data-from="1" data-to="0" data-kind="reply" data-label="signed ingest URL"><span class="k k-reply">reply</span>The browser receives the signed URL.</li>
+      <li data-from="0" data-to="3" data-kind="data" data-label="DATA: PUT bytes (resumable)"><span class="k k-data">data</span>The browser uploads to <code>{region}.ingest.uploadthing.com</code>. Interrupted uploads can resume.<span class="risk">The docs don't say whether a signed ingest URL can be reused after the upload completes.</span></li>
+      <li data-from="3" data-to="4" data-kind="data" data-label="DATA: store"><span class="k k-data">data</span>Ingest writes the file to UploadThing-managed storage in your app's region.<span class="risk">Changing region later doesn't move existing files.</span></li>
+      <li data-from="3" data-to="1" data-kind="control" data-label="signed callback"><span class="k k-control">control</span>UploadThing calls your endpoint with an HMAC-signed body. The SDK verifies it.<span class="risk">Localhost needs a tunnel for production-like tests, and Vercel preview protection blocks callbacks unless bypassed.</span></li>
+      <li data-from="1" data-to="2" data-kind="control" data-label="onUploadComplete: save"><span class="k k-control">control</span>Your <code>onUploadComplete</code> records the file in <em>your</em> DB (key, owner, purpose). UploadThing's docs recommend keeping file data in your own DB.</li>
+      <li data-from="1" data-to="3" data-kind="reply" data-label="your return data"><span class="k k-reply">reply</span>With <code>awaitServerData</code> (the default), your result goes back through ingest…</li>
+      <li data-from="3" data-to="0" data-kind="reply" data-label="upload done + your data"><span class="k k-reply">reply</span>…to the browser, which finishes the upload call.</li>
+      <li data-from="0" data-to="4" data-kind="data" data-label="DATA: GET ufs.sh/f/KEY"><span class="k k-data">data</span>Later reads come from UploadThing's storage and CDN. Private files need a short-lived signed URL (a paid-plan feature).<span class="risk">The two paths depend on different parts. New uploads need the ingest service and your callback endpoint. Reads need UploadThing's storage and CDN. In the 2024-09-10 incident, file URLs were unreachable for 53 minutes while the stored files stayed intact.</span></li>
+    </ol>
+  </section>
+
+  <h2 id="resp">Who is responsible for what</h2>
+  <p class="muted">"<span class="you">You</span>" means your code or your operational duty. Summarized from the notes, where each row is sourced.</p>
+  <div class="table-wrap">
+  <table aria-describedby="resp">
+    <thead><tr><th scope="col">Job</th><th scope="col">A · Proxy</th><th scope="col">B · Direct to your bucket</th><th scope="col">C · UploadThing v7</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Authenticate the user and decide who may upload what</th><td class="you">You</td><td class="you">You</td><td><span class="you">You</span> (<code>middleware</code> + route config)</td></tr>
+      <tr><th scope="row">Secret credentials on your server</th><td>Storage credentials (scoped; temporary where possible)</td><td>Storage credentials scoped to the bucket (temporary where possible)</td><td>UploadThing API key</td></tr>
+      <tr><th scope="row">Bytes pass through your server</th><td>Yes (twice)</td><td>No</td><td>No (except server-side <code>UTApi.uploadFiles</code>)</td></tr>
+      <tr><th scope="row">Enforce max size</th><td><span class="you">You</span>, while reading the body</td><td>POST policy condition (AWS) and/or <span class="you">you</span> at finalize</td><td>Signed size checked at ingest; you set limits per route</td></tr>
+      <tr><th scope="row">Check real file content/type</th><td><span class="you">You</span>, before storing</td><td><span class="you">You</span>, at finalize (<code>HEAD</code> alone doesn't prove format)</td><td><span class="you">You</span>, if it matters (SDK uses browser MIME; ingest behavior undocumented)</td></tr>
+      <tr><th scope="row">Bytes stay as checked after validation</th><td>When your server writes the exact bytes it checked</td><td>Publish the same pinned/protected snapshot to a server-controlled key, or enforce create-only / checksum-pinned uploads where supported</td><td>Not documented</td></tr>
+      <tr><th scope="row">Know the upload finished</th><td>Your server sees the storage response; <span class="you">you</span> still record it</td><td><span class="you">You</span> build finalize (or bucket events)</td><td>UploadThing's signed callback</td></tr>
+      <tr><th scope="row">Record the file in your DB</th><td class="you">You</td><td class="you">You</td><td><span class="you">You</span> (<code>onUploadComplete</code>)</td></tr>
+      <tr><th scope="row">Clean up abandoned or unrecorded files</th><td><span class="you">You</span>: a storage write can succeed and the DB write then fail, so reconcile</td><td><span class="you">You</span>: lifecycle expiry for <code>incoming/</code>, abort-multipart rule, sweep for stale pending rows</td><td>Cleanup of failed uploads isn't documented. <span class="you">You</span> reconcile files with no DB row (e.g. your callback failed) via <code>listFiles</code></td></tr>
+      <tr><th scope="row">Large / resumable uploads</th><td>Hard</td><td><span class="you">You</span> add multipart or tus when needed</td><td>Built in</td></tr>
+      <tr><th scope="row">Private reads</th><td><span class="you">You</span> check access, then sign GETs</td><td><span class="you">You</span> check access, then sign GETs. No plan gate; normal request and egress costs apply</td><td><span class="you">You</span> check access; signed URLs with your UT key (paid-plan feature)</td></tr>
+      <tr><th scope="row">Deletion when users delete things</th><td class="you">You</td><td class="you">You</td><td><span class="you">You</span> decide and call <code>deleteFiles</code></td></tr>
+      <tr><th scope="row">Egress bill</th><td>Provider rate</td><td>Provider rate (R2 lists free egress)</td><td>Advertised as not separately billed (terms not reviewed)</td></tr>
+      <tr><th scope="row">Where bytes live / leaving</th><td>Your bucket. Leaving: copy objects; recreate CORS, lifecycle and permissions; update endpoint, credentials and URL generation</td><td>Same as A</td><td>UploadThing-managed storage. No documented bulk export: script <code>listFiles</code> + download, re-upload, update keys/URLs, rework upload UI and callbacks</td></tr>
+      <tr><th scope="row">Video transcoding / streaming</th><td>None (needs a separate service or pipeline)</td><td>None (needs a separate service or pipeline)</td><td>None documented (transcoding listed as future work in 2024)</td></tr>
+      <tr><th scope="row">What each path depends on</th><td>Uploads and reads: your server + storage provider (+ CDN if used for reads)</td><td>Uploads: your server (sign, finalize) + provider. Reads: provider (+ CDN if used)</td><td>New uploads: your server (sign, callback) + UploadThing ingest. Reads: UploadThing storage/CDN</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <footer>
+    <p><b>Sources</b> (details and verification status in the note <a href="object-storage-source-ledger/">Object Storage Source Ledger</a>):</p>
+    <ul>
+      <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-presigned-url.html">AWS: presigned URLs</a> · <a href="https://docs.aws.amazon.com/boto3/latest/reference/services/s3/client/generate_presigned_post.html">Boto3: presigned POST fields and conditions</a> · <a href="https://aws.amazon.com/about-aws/whats-new/2024/08/amazon-s3-conditional-writes">AWS: conditional writes</a> · <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/cors.html">AWS: CORS</a> · <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/mpu-abort-incomplete-mpu-lifecycle-config.html">AWS: abort incomplete multipart uploads</a></li>
+      <li><a href="https://developers.cloudflare.com/r2/api/s3/presigned-urls/">Cloudflare R2: presigned URLs (no POST)</a> · <a href="https://vercel.com/docs/functions/limitations">Vercel Functions limits (4.5 MB)</a></li>
+      <li><a href="https://docs.uploadthing.com/uploading-files">UploadThing: uploading files</a> · <a href="https://docs.uploadthing.com/concepts/auth-security">auth &amp; security</a> · <a href="https://docs.uploadthing.com/concepts/regions-acl">regions &amp; ACL</a> · <a href="https://docs.uploadthing.com/faq">FAQ</a> · <a href="https://docs.uploadthing.com/blog/v7-launch">v7 launch</a> · <a href="https://docs.uploadthing.com/blog/incident-report-2024-09-10">2024 incident</a> · <a href="https://uploadthing.com/pricing">pricing</a></li>
+      <li><a href="https://raw.githubusercontent.com/pingdotgg/uploadthing/main/packages/shared/src/utils.ts">UploadThing SDK source: file type matching</a> · <a href="https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html">OWASP File Upload Cheat Sheet</a></li>
+    </ul>
+  </footer>
+</main>
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  var NS = 'http://www.w3.org/2000/svg';
+  var LANE_W = 168, LEFT = 14, TOP = 12, HEAD_H = 40, ROW_H = 46;
+
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(n);
+    return n;
+  }
+
+  function draw(panel) {
+    var lanes = panel.getAttribute('data-lanes').split('|');
+    var items = Array.prototype.slice.call(panel.querySelectorAll('ol.steps > li'));
+    var W = LEFT * 2 + LANE_W * lanes.length;
+    var H = TOP + HEAD_H + 34 + items.length * ROW_H;
+    var cx = function (i) { return LEFT + LANE_W * i + LANE_W / 2; };
+    var id = panel.id;
+    var title = panel.querySelector('.no-js-title').textContent;
+
+    var svg = el('svg', { viewBox: '0 0 ' + W + ' ' + H, width: W, height: H, role: 'img', 'aria-labelledby': id + '-svg-title' });
+    var t = el('title', { id: id + '-svg-title' }, svg);
+    t.textContent = 'Sequence diagram: ' + title + '. The numbered list below the diagram describes each step.';
+
+    var defs = el('defs', {}, svg);
+    [['control', 'mk-control', 8], ['data', 'mk-data', 7]].forEach(function (m) {
+      var mk = el('marker', { id: id + '-arrow-' + m[0], viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: m[2], markerHeight: m[2], orient: 'auto-start-reverse', markerUnits: 'userSpaceOnUse' }, defs);
+      el('path', { d: 'M0,0 L10,5 L0,10 z', 'class': m[1] }, mk);
+    });
+
+    lanes.forEach(function (name, i) {
+      var g = el('g', { 'class': 'lane-head' }, svg);
+      el('rect', { x: cx(i) - 74, y: TOP, width: 148, height: HEAD_H - 8, rx: 7 }, g);
+      var tx = el('text', { x: cx(i), y: TOP + (HEAD_H - 8) / 2 + 5, 'text-anchor': 'middle' }, g);
+      tx.textContent = name;
+      el('line', { 'class': 'lifeline', x1: cx(i), y1: TOP + HEAD_H - 8, x2: cx(i), y2: H - 6 }, svg);
+    });
+
+    var groups = [];
+    items.forEach(function (li, i) {
+      var from = +li.getAttribute('data-from'), to = +li.getAttribute('data-to');
+      var kind = li.getAttribute('data-kind'), label = (i + 1) + '. ' + li.getAttribute('data-label');
+      var y = TOP + HEAD_H + 30 + i * ROW_H;
+      var g = el('g', { 'class': 'step kind-' + kind }, svg);
+      if (from === to) {
+        el('rect', { x: cx(from) - 78, y: y - 17, width: 156, height: 26, rx: 6 }, g);
+        var st = el('text', { x: cx(from), y: y + 1, 'text-anchor': 'middle' }, g);
+        st.textContent = label;
+      } else {
+        var dir = to > from ? 1 : -1;
+        var marker = kind === 'data' ? 'data' : 'control';
+        el('line', { x1: cx(from) + dir * 4, y1: y, x2: cx(to) - dir * 4, y2: y, 'marker-end': 'url(#' + id + '-arrow-' + marker + ')' }, g);
+        var lt = el('text', { x: (cx(from) + cx(to)) / 2, y: y - 8, 'text-anchor': 'middle' }, g);
+        lt.textContent = label;
+      }
+      groups.push(g);
+    });
+
+    var holder = panel.querySelector('.diagram');
+    holder.innerHTML = '';
+    holder.appendChild(svg);
+
+    var current = -1;
+    var status = panel.querySelector('.status');
+    function show() {
+      svg.classList.toggle('dim', current >= 0);
+      groups.forEach(function (g, i) { g.classList.toggle('current', i === current); });
+      items.forEach(function (li, i) {
+        if (i === current) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+      });
+      status.textContent = current < 0 ? 'Showing all ' + items.length + ' steps' : 'Step ' + (current + 1) + ' of ' + items.length;
+    }
+    panel.querySelectorAll('.controls button').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var act = b.getAttribute('data-act');
+        if (act === 'next') current = Math.min(current + 1, items.length - 1);
+        else if (act === 'prev') current = current <= 0 ? 0 : current - 1;
+        else current = -1;
+        show();
+      });
+    });
+    items.forEach(function (li, i) {
+      li.addEventListener('click', function () { current = i; show(); });
+    });
+    show();
+  }
+
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.panel'));
+  panels.forEach(draw);
+
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute('aria-selected', String(on));
+      t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+    });
+    if (focus) tab.focus();
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function () { select(tab, false); });
+    tab.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowRight') { e.preventDefault(); select(tabs[(i + 1) % tabs.length], true); }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); select(tabs[(i - 1 + tabs.length) % tabs.length], true); }
+    });
+  });
+  select(document.getElementById('tab-direct'), false);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Storage Timeline, 1998–2026</title>
+<style>
+  :root {
+    --bg: #fbfaf7; --fg: #1f2328; --muted: #5b636e; --card: #ffffff; --line: #d9d6cf;
+    --focus: #1a5fb4;
+    --t-research: #6b4fa3; --t-s3: #b5530f; --t-safety: #a3263a; --t-econ: #1d7a54; --t-eco: #1a5fb4; --t-ut: #7a5b00;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16181c; --fg: #e8e6e3; --muted: #a3a9b1; --card: #1f2227; --line: #3a3f46; --focus: #8ab4f8;
+      --t-research: #b49ae8; --t-s3: #f0a060; --t-safety: #f08a9b; --t-econ: #6fd3a5; --t-eco: #8ab4f8; --t-ut: #e2c35a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 24px 18px 64px; }
+  h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+  h2 { font-size: 1.15rem; margin: 28px 0 10px; }
+  a { color: var(--focus); }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .eras { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+  .eras li { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .eras b { display: block; font-size: .95rem; }
+  .eras span { color: var(--muted); font-size: .9rem; }
+  .filters { display: none; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 6px; }
+  .js .filters { display: flex; }
+  .filters button { font: inherit; font-size: .88rem; padding: 6px 12px; border-radius: 999px; border: 1.5px solid var(--line);
+    background: var(--card); color: var(--fg); cursor: pointer; }
+  .filters button[aria-pressed="true"] { border-color: var(--track, var(--fg)); box-shadow: inset 0 0 0 1px var(--track, var(--fg)); font-weight: 600; }
+  .filters button .dot { display: inline-block; width: .7em; height: .7em; border-radius: 50%; margin-right: 6px; vertical-align: baseline; }
+  #count { color: var(--muted); font-size: .9rem; margin-left: 4px; }
+  ol.timeline { list-style: none; margin: 16px 0 0; padding: 0 0 0 22px; border-left: 2px solid var(--line); }
+  .event { position: relative; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--track);
+    border-radius: 10px; padding: 12px 14px; margin: 0 0 14px; }
+  .event::before { content: ""; position: absolute; left: -31px; top: 18px; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--track); border: 2px solid var(--bg); }
+  .event[hidden] { display: none; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; font-size: .88rem; color: var(--muted); }
+  .meta time { font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; }
+  .tag { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--track); }
+  .event h3 { font-size: 1.02rem; margin: 4px 0 6px; line-height: 1.35; }
+  .event p { margin: 4px 0; }
+  .why { color: var(--fg); }
+  .why::before { content: "Why it matters to you: "; font-weight: 600; }
+  .interp::before { content: "Interpretation: "; font-weight: 600; }
+  .src { font-size: .86rem; color: var(--muted); margin-top: 6px; }
+  .src a { word-break: break-word; }
+  .badge { display: inline-block; font-size: .72rem; border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; margin-left: 4px; color: var(--muted); }
+  .t-research { --track: var(--t-research); } .t-s3 { --track: var(--t-s3); } .t-safety { --track: var(--t-safety); }
+  .t-econ { --track: var(--t-econ); } .t-eco { --track: var(--t-eco); } .t-ut { --track: var(--t-ut); }
+  .back { margin: 0 0 14px; font-size: .9rem; }
+  .back a { color: var(--muted); }
+  footer { margin-top: 30px; color: var(--muted); font-size: .9rem; }
+  @media (max-width: 520px) { ol.timeline { padding-left: 14px; } .event::before { left: -23px; } h1 { font-size: 1.35rem; } }
+</style>
+</head>
+<body>
+<main>
+  <nav class="back" aria-label="Library"><a href="./">← Object storage for web apps</a></nav>
+  <h1>Object storage timeline, 1998–2026</h1>
+  <p class="sub">Companion to the note <a href="02-how-s3-became-the-convention/">02 How S3 Became the Convention</a>. As of 2026-10-18. Each event says what changed and why it matters for a solo web developer, with its source. Badges: <span class="badge">primary</span> = the organization or author describing their own work, <span class="badge">vendor</span> = a company selling something related, <span class="badge">secondary</span> = press or commentary, <span class="badge">snippet</span> = seen in search results only.</p>
+
+  <h2>The four eras at a glance</h2>
+  <ul class="eras">
+    <li><b>1998–2005 · Ideas</b><span>Research argues servers shouldn't sit on the data path. Clients should get cryptographic permission and talk to storage directly.</span></li>
+    <li><b>2006–2012 · S3 becomes the API</b><span>Storage becomes a pay-per-use web service. Browsers gradually learn to upload directly: POST forms, multipart, CORS.</span></li>
+    <li><b>2013–2020 · Hardening and copying</b><span>Leaks lead to safer defaults, consistency gets fixed, and rivals adopt the S3 API to inherit its tooling.</span></li>
+    <li><b>2021–2026 · Price wars, exits, wrappers</b><span>Egress becomes the battleground, big users leave, managed upload services appear, and self-hosting gets shaky.</span></li>
+  </ul>
+
+  <h2 id="events-heading">Events</h2>
+  <div class="filters" role="group" aria-label="Filter events by track">
+    <button type="button" data-filter="all" aria-pressed="true">All</button>
+    <button type="button" data-filter="t-research" aria-pressed="false" class="t-research"><span class="dot" style="background:var(--t-research)"></span>Research &amp; big tech</button>
+    <button type="button" data-filter="t-s3" aria-pressed="false" class="t-s3"><span class="dot" style="background:var(--t-s3)"></span>S3 capabilities</button>
+    <button type="button" data-filter="t-safety" aria-pressed="false" class="t-safety"><span class="dot" style="background:var(--t-safety)"></span>Safety &amp; reliability</button>
+    <button type="button" data-filter="t-econ" aria-pressed="false" class="t-econ"><span class="dot" style="background:var(--t-econ)"></span>Economics &amp; egress</button>
+    <button type="button" data-filter="t-eco" aria-pressed="false" class="t-eco"><span class="dot" style="background:var(--t-eco)"></span>S3-compatible ecosystem</button>
+    <button type="button" data-filter="t-ut" aria-pressed="false" class="t-ut"><span class="dot" style="background:var(--t-ut)"></span>UploadThing</button>
+    <span id="count" aria-live="polite"></span>
+  </div>
+
+  <ol class="timeline" aria-labelledby="events-heading">
+
+    <li class="event t-research"><div class="meta"><time datetime="1998">1998</time><span class="tag">Research &amp; big tech</span></div>
+      <h3>CMU's NASD: take servers off the data path</h3>
+      <p>The Network-Attached Secure Disks research makes direct client transfer and cryptographically secured interfaces core principles. The aim is to avoid paying for servers whose main job is moving data.</p>
+      <p class="interp">This is the conceptual root of presigned URLs: a trusted party grants narrow cryptographic permission, and the bytes go directly between client and storage.</p>
+      <p class="src"><a href="https://pdl.cmu.edu/PDL-FTP/NASD/asplos98_abs.shtml">CMU PDL: NASD abstract (ASPLOS VIII)</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2006-03-14">2006-03-14</time><span class="tag">S3 capabilities</span></div>
+      <h3>Amazon S3 launches as pay-as-you-go web storage</h3>
+      <p>Deliberately few features: SOAP and REST interfaces, objects up to 5 GB, per-object ACLs, $0.15/GB-month stored and $0.20/GB transferred, designed for 99.99% availability. Object storage already existed. S3 made it a web utility.</p>
+      <p class="why">A small HTTP API and per-GB pricing meant anyone could build on it. Its core API is what "S3-compatible" services implement today.</p>
+      <p class="src"><a href="https://press.aboutamazon.com/2006/3/amazon-web-services-launches">Amazon press release</a><span class="badge">primary</span> · <a href="https://aws.amazon.com/blogs/aws/amazon_s3/">Jeff Barr launch post</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2008-06-27">2008</time><span class="tag">S3 capabilities</span></div>
+      <h3>Browser uploads via signed HTML POST forms</h3>
+      <p>Same-origin rules kept page JavaScript from talking to S3 directly, but a plain HTML form carrying a signed policy could upload straight into a bucket.</p>
+      <p class="why">This was the first way to keep file bytes off your server, and it's the ancestor of today's presigned POST with its size and type conditions.</p>
+      <p class="src"><a href="https://simonwillison.net/2008/Jun/27/amazon/">Simon Willison, 2008-06-27</a><span class="badge">secondary</span></p></li>
+
+    <li class="event t-research"><div class="meta"><time datetime="2010-10">2010-10</time><span class="tag">Research &amp; big tech</span></div>
+      <h3>Facebook's Haystack paper</h3>
+      <p>Over 260 billion images (20+ PB) and about 1 billion new photos a week. Filesystem metadata cost several disk operations per photo read, so they built a lean object store. Four sizes were stored per photo, and a CDN served the hot images while the "long tail" hit storage.</p>
+      <p class="why">It explains why web files belong in object storage, why your DB should hold the meaning, and why you serve resized variants.</p>
+      <p class="src"><a href="https://www.usenix.org/events/osdi10/tech/full_papers/Beaver.pdf">Haystack (OSDI '10, PDF)</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2010-12-09">2010-11 / 12</time><span class="tag">S3 capabilities</span></div>
+      <h3>Multipart upload, then 5 TB objects</h3>
+      <p>Objects can be uploaded in parallel, retryable parts, and the max size rose from 5 GB to 5 TB. Vogels' example was a 50 GB HD movie.</p>
+      <p class="why">This is the basis of large and resumable uploads. You'll want it once files regularly exceed ~100 MB.</p>
+      <p class="src"><a href="https://www.allthingsdistributed.com/2010/12/amazon_s3_5_terabyte_objects.html">Vogels, 2010-12-09</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2012-08-31">2012-08-31</time><span class="tag">S3 capabilities</span></div>
+      <h3>CORS support: browser JS talks to S3 directly</h3>
+      <p>JavaScript on your site can now upload to S3 directly, with drag-and-drop and progress bars, without a proxy server in between.</p>
+      <p class="why">This made the modern direct-upload pattern possible, and it's why you configure CORS on your bucket.</p>
+      <p class="src"><a href="https://aws.amazon.com/blogs/aws/amazon-s3-cross-origin-resource-sharing/">Jeff Barr, AWS News Blog</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-research"><div class="meta"><time datetime="2014-08">2014-08</time><span class="tag">Research &amp; big tech</span></div>
+      <h3>Facebook's f4: a "warm" storage tier</h3>
+      <p>Rarely accessed blobs moved to a tier that cut the effective replication factor from 3.6 to 2.8 or 2.1.</p>
+      <p class="why">Storage "temperature" tiers matter at huge scale. For a small app they're a later optimization, not a day-one design.</p>
+      <p class="src"><a href="https://www.usenix.org/conference/osdi14/technical-sessions/presentation/muralidhar">f4 (OSDI '14)</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-econ"><div class="meta"><time datetime="2016-03">2016-03</time><span class="tag">Economics &amp; egress</span></div>
+      <h3>Dropbox moves most storage off S3</h3>
+      <p>Press reports said Dropbox, an early S3 adopter, had moved about 90% of its storage onto its own "Magic Pocket" system.</p>
+      <p class="why">Leaving S3 is a scale decision (hundreds of PB), not a template for small apps.</p>
+      <p class="src"><a href="https://www.theregister.com/2016/03/14/dropbox_moves_data_from_aws">The Register</a><span class="badge">secondary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-safety"><div class="meta"><time datetime="2017-02-28">2017-02-28</time><span class="tag">Safety &amp; reliability</span></div>
+      <h3>S3 us-east-1 outage (~4 hours)</h3>
+      <p>A mistyped command during debugging removed too much capacity, and S3's index and placement subsystems needed full restarts. Even AWS's status dashboard depended on S3.</p>
+      <p class="why">Availability and durability are separate. AWS's summary describes an availability failure, not data loss, yet many sites broke. Every storage dependency sits on your critical path.</p>
+      <p class="src"><a href="https://aws.amazon.com/message/41926/">AWS service event summary</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-safety"><div class="meta"><time datetime="2018-11-15">2018-11-15</time><span class="tag">Safety &amp; reliability</span></div>
+      <h3>S3 Block Public Access</h3>
+      <p>Account- and bucket-level switches that override public ACLs and policies, introduced after a series of data exposures through misconfigured buckets.</p>
+      <p class="why">"Just make the bucket public" stopped being the easy default. Plan for private buckets.</p>
+      <p class="src"><a href="https://aws.amazon.com/about-aws/whats-new/2018/11/introducing-amazon-s3-block-public-access">AWS What's New</a><span class="badge">primary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-eco"><div class="meta"><time datetime="2020-05-04">2020-05-04</time><span class="tag">S3-compatible ecosystem</span></div>
+      <h3>Backblaze B2 adds S3-compatible APIs</h3>
+      <p>Launched with partners, pitched as letting existing S3 users point their tools at a new destination.</p>
+      <p class="interp">Copying S3's API is the cheapest way for a rival to inherit S3's tooling and win switchers.</p>
+      <p class="src"><a href="https://s204.q4cdn.com/590551802/files/doc_news/2020/05/Backblaze-B2-Cloud-Storage-Launches-S3-Compatible-APIs-With-Partners-IBM-Aspera-Veeam-Quantum.pdf">Backblaze press release (PDF)</a><span class="badge">vendor</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2020-12-01">2020-12-01</time><span class="tag">S3 capabilities</span></div>
+      <h3>Strong read-after-write consistency, for free</h3>
+      <p>This ended 14 years of eventual consistency, during which big users built workarounds such as Netflix's s3mper and Hadoop's S3Guard.</p>
+      <p class="why">"Upload, then immediately HEAD the object" is reliable on S3, which is what your finalize step relies on. It doesn't refresh CDN caches or make DB + bucket updates atomic. Check other providers' guarantees.</p>
+      <p class="src"><a href="https://aws.amazon.com/about-aws/whats-new/2020/12/amazon-s3-now-delivers-strong-read-after-write-consistency-automatically-for-all-applications">AWS What's New</a><span class="badge">primary</span><span class="badge">snippet</span> · <a href="https://www.allthingsdistributed.com/2021/04/s3-strong-consistency.html">Vogels, 2021</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-econ"><div class="meta"><time datetime="2021-09-28">2021-09-28</time><span class="tag">Economics &amp; egress</span></div>
+      <h3>Cloudflare announces R2: S3 API, zero egress</h3>
+      <p>Announced as S3-API-compatible storage with zero egress fees, at $0.015/GB-month at launch.</p>
+      <p class="why">Egress became the competitive battleground. For download-heavy apps, a zero-egress provider changes the cost picture.</p>
+      <p class="src"><a href="https://blog.cloudflare.com/introducing-r2-object-storage/">Cloudflare blog</a><span class="badge">vendor</span></p></li>
+
+    <li class="event t-safety"><div class="meta"><time datetime="2023-04">2023-04</time><span class="tag">Safety &amp; reliability</span></div>
+      <h3>New S3 buckets: Block Public Access on, ACLs off, by default</h3>
+      <p>Applied to new buckets however they're created (console, CLI, SDK, CloudFormation).</p>
+      <p class="why">Old tutorials that upload with <code>public-read</code> ACLs fail on new buckets. Keep the bucket private: private files go out through short-lived signed URLs, and public files through a CDN with origin access (or a prefix you deliberately make public). A custom domain alone is just a name.</p>
+      <p class="src"><a href="https://aws.amazon.com/about-aws/whats-new/2023/04/amazon-s3-two-security-best-practices-buckets-default">AWS What's New</a><span class="badge">primary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2023-05">2023-04 / 05</time><span class="tag">UploadThing</span></div>
+      <h3>UploadThing appears; "bring your own S3" closed as not planned</h3>
+      <p>npm package first published 2023-04-14, GitHub repo created 2023-05-10. On 2023-05-11 a request to use your own S3-compatible bucket was closed "not planned". The same month, Garret Harp published the counterpoint "Uploads Are Easy".</p>
+      <p class="why">From the start, UploadThing was a hosted service rather than a client for your bucket.</p>
+      <p class="src"><a href="https://github.com/pingdotgg/uploadthing/issues/28">GitHub issue #28</a><span class="badge">primary</span> · <a href="https://garretcharp.com/posts/uploads-are-easy/">Garret Harp, 2023-05-06</a><span class="badge">secondary</span></p></li>
+
+    <li class="event t-research"><div class="meta"><time datetime="2023-07-27">2023-07-27</time><span class="tag">Research &amp; big tech</span></div>
+      <h3>Warfield: "Building and operating a pretty big storage system called S3"</h3>
+      <p>S3 described as a living service on millions of drives. A drive still does only about 120 random operations per second, hence massive spreading of data. Includes durability reviews and formal verification.</p>
+      <p class="why">Operating storage is the real work. Let a provider do it, and keep your own integration thin.</p>
+      <p class="src"><a href="https://www.allthingsdistributed.com/2023/07/building-and-operating-a-pretty-big-storage-system.html">All Things Distributed</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-econ"><div class="meta"><time datetime="2024-03-05">2024-03-05</time><span class="tag">Economics &amp; egress</span></div>
+      <h3>AWS waives egress for customers leaving</h3>
+      <p>Free internet egress when moving data out of AWS (after support approval), on top of the standing 100 GB/month free tier.</p>
+      <p class="why">Exit costs are negotiable now, but data gravity remains. Store keys, not provider URLs.</p>
+      <p class="src"><a href="https://aws.amazon.com/blogs/aws/free-data-transfer-out-to-internet-when-moving-out-of-aws/">AWS News Blog</a><span class="badge">primary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-econ"><div class="meta"><time datetime="2024-05-13">2024-04 / 05</time><span class="tag">Economics &amp; egress</span></div>
+      <h3>The "empty bucket bill", and AWS's fix</h3>
+      <p>Strangers' misconfigured tools sent ~100M unauthorized PUTs to a developer's bucket, and AWS billed for the failed requests. AWS then stopped charging for 403s from outside your account or organization (announced 2024-05-13, fully rolled out 2024-08-19).</p>
+      <p class="why">Authorized traffic still costs money. Set billing alerts from day one (they warn, they don't cap) and per-user quotas.</p>
+      <p class="src"><a href="https://simonwillison.net/2024/Apr/30/how-an-empty-s3-bucket-can-make-your-aws-bill-explode">Simon Willison</a><span class="badge">secondary</span> · <a href="https://aws.amazon.com/about-aws/whats-new/2024/08/amazon-s3-no-charges-several-http-error-codes">AWS What's New</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-safety"><div class="meta"><time datetime="2024-06-11">2024-06-11</time><span class="tag">Safety &amp; reliability</span></div>
+      <h3>Managed malware scanning for new S3 uploads (GuardDuty)</h3>
+      <p>Scans each new object in selected buckets and reports or tags the result.</p>
+      <p class="why">Worth adding once users share documents with other users.</p>
+      <p class="src"><a href="https://aws.amazon.com/about-aws/whats-new/2024/06/detect-malware-object-uploads-amazon-s3-guardduty">AWS What's New</a><span class="badge">primary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2024-08-20">2024-08-20</time><span class="tag">S3 capabilities</span></div>
+      <h3>Conditional writes (<code>If-None-Match</code>)</h3>
+      <p>"Only create if the key doesn't exist" on PutObject and CompleteMultipartUpload.</p>
+      <p class="why">Safe retries without accidental overwrites. R2 also evaluates conditional PutObject atomically.</p>
+      <p class="src"><a href="https://aws.amazon.com/about-aws/whats-new/2024/08/amazon-s3-conditional-writes">AWS What's New</a><span class="badge">primary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2024-09-10">2024-09-10</time><span class="tag">UploadThing</span></div>
+      <h3>UploadThing's first major outage (53 minutes)</h3>
+      <p>While moving files off a single "all in one" S3 bucket into regional buckets, a URL-rewrite bug in a Cloudflare KV cache made all hosted file URLs inaccessible. The report says no data was lost.</p>
+      <p class="why">A managed service has its own moving parts (cache, CDN domain, buckets) on the read path. Here reads failed while the stored files stayed intact.</p>
+      <p class="src"><a href="https://docs.uploadthing.com/blog/incident-report-2024-09-10">UploadThing incident report</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2024-09-13">2024-09-13</time><span class="tag">UploadThing</span></div>
+      <h3>UploadThing v7: its own ingest servers</h3>
+      <p>The browser now uploads to UploadThing's Ingest Server instead of to S3 via presigned URLs. Polling is gone, resumable uploads arrive, and "bring-your-own-bucket" and transcoding are listed as future work.</p>
+      <p class="why">"A wrapper around S3" describes v6. In the documented v7 design, files go through UploadThing's servers into UploadThing-managed storage, not a bucket you configure.</p>
+      <p class="src"><a href="https://docs.uploadthing.com/blog/v7-launch">UploadThing v7 launch post</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-econ"><div class="meta"><time datetime="2024-10-17">2024-10-17</time><span class="tag">Economics &amp; egress</span></div>
+      <h3>DHH: ~10 PB in S3 at ~$1.3M a year</h3>
+      <p>37signals' remaining cloud spend was all S3, locked into a four-year contract from 2021, with an exit planned for summer 2025.</p>
+      <p class="why">At petabyte scale owning hardware wins. At your scale, the lesson is just to keep exit possible.</p>
+      <p class="src"><a href="https://world.hey.com/dhh/our-cloud-exit-savings-will-now-top-ten-million-over-five-years-c7d9b5bd">DHH, HEY World</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2024-11-26">2024-11-26</time><span class="tag">UploadThing</span></div>
+      <h3>Theo's own list of S3 pain points</h3>
+      <p>Setup complexity, not knowing when a presigned upload finished, unpredictable egress, and large video uploads breaking. He also says plain file streaming from a bucket is a poor video experience.</p>
+      <p class="why">The pain points are real glue and operations problems, not "storing bytes is hard". Video needs a separate service either way.</p>
+      <p class="src"><a href="https://mux.com/blog/theobrowne">Mux blog interview</a><span class="badge">vendor</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2025-01-30">2025-01-30</time><span class="tag">UploadThing</span></div>
+      <h3>UploadThing usage-based pricing</h3>
+      <p>$25/month including 250 GB, then $0.08/GB, advertised with no charges for seats, requests or bandwidth.</p>
+      <p class="why">Bundled bandwidth is the main economic offer. Service terms weren't reviewed, so check limits before relying on it for heavy traffic.</p>
+      <p class="src"><a href="https://docs.uploadthing.com/blog/usage-based">UploadThing blog</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-econ"><div class="meta"><time datetime="2025-05-09">2025-05-09</time><span class="tag">Economics &amp; egress</span></div>
+      <h3>37signals' S3 exit underway; $250k egress waived</h3>
+      <p>The data migration was about to start, with the AWS account to be deleted afterwards. (The Register reports 18 PB, which differs from DHH's ~10 PB.)</p>
+      <p class="why">The 2024 exit-egress waiver applied in practice, though getting it approved took time.</p>
+      <p class="src"><a href="https://www.theregister.com/2025/05/09/37signals_cloud_repatriation_storage_savings">The Register</a><span class="badge">secondary</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2025-08-17">2025-08-17</time><span class="tag">UploadThing</span></div>
+      <h3>Latest UploadThing SDK release: 7.7.4</h3>
+      <p>No newer npm release as of 2026-10-18 (the repo was last pushed 2026-09-30). Earlier in 2025: dynamic region selection (7.7.0, 2025-05-09).</p>
+      <p class="why">These dates describe the client SDKs, not how actively the hosted service is run.</p>
+      <p class="src"><a href="https://registry.npmjs.org/uploadthing">npm registry</a><span class="badge">primary</span> · <a href="https://github.com/pingdotgg/uploadthing/blob/main/packages/uploadthing/CHANGELOG.md">CHANGELOG</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2025-12-02">2025-12-02</time><span class="tag">S3 capabilities</span></div>
+      <h3>S3 maximum object size: 50 TB</h3>
+      <p>A tenfold increase. AWS's limits page lists 48.8 TiB.</p>
+      <p class="why">Mostly relevant to video and data workloads. The API keeps growing without breaking.</p>
+      <p class="src"><a href="https://aws.amazon.com/about-aws/whats-new/2025/12/amazon-s3-maximum-object-size-50-tb/">AWS What's New</a><span class="badge">primary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-eco"><div class="meta"><time datetime="2026-04-25">2025-12 → 2026-04</time><span class="tag">S3-compatible ecosystem</span></div>
+      <h3>MinIO community edition: maintenance mode, then archived</h3>
+      <p>Reported maintenance mode in December 2025. The repo (61.3k stars) was archived on 2026-04-25, with a README saying it's unmaintained and pointing to paid products.</p>
+      <p class="why">Self-hosted "S3-compatible" depends on someone else's business model, and it makes you the operator.</p>
+      <p class="src"><a href="https://github.com/minio/minio">MinIO GitHub</a><span class="badge">primary</span> · <a href="https://infoq.com/news/2025/12/minio-s3-api-alternatives/">InfoQ</a><span class="badge">secondary</span><span class="badge">snippet</span></p></li>
+
+    <li class="event t-s3"><div class="meta"><time datetime="2026-03-14">2026-03-14</time><span class="tag">S3 capabilities</span></div>
+      <h3>S3 turns 20</h3>
+      <p>AWS's own figures: more than 500 trillion objects, more than 200 million requests per second, and storage a little over 2 cents per GB, about 85% cheaper than at launch.</p>
+      <p class="why">The convention is more entrenched than ever. Learning S3's model pays off across providers.</p>
+      <p class="src"><a href="https://aws.amazon.com/blogs/aws/aws-weekly-roundup-amazon-s3-turns-20-amazon-route-53-global-resolver-general-availability-and-more-march-16-2026/">AWS Weekly Roundup</a><span class="badge">primary</span></p></li>
+
+    <li class="event t-ut"><div class="meta"><time datetime="2026-10-18">2026-10-18</time><span class="tag">UploadThing</span></div>
+      <h3>Snapshot: UploadThing today</h3>
+      <p>~820k npm downloads for 2026-09-17 → 2026-10-16 (about 6x the same window in 2024) and 5,351 GitHub stars. Within Payload CMS's adapter set, its adapter's downloads are ~0.6% of the S3 adapter's. Bring-your-own-bucket, self-hosting and bulk export aren't documented.</p>
+      <p class="why">Meaningful, growing distribution. Production adoption at scale isn't established either way. Decide on fit, control and exit, not on the popularity label.</p>
+      <p class="src"><a href="https://api.npmjs.org/downloads/point/2026-09-17:2026-10-16/uploadthing">npm API (fixed window)</a><span class="badge">primary</span> · <a href="https://payloadcms.com/docs/upload/storage-adapters">Payload adapters</a><span class="badge">primary</span> · <a href="https://docs.uploadthing.com/sitemap-0.xml">UploadThing docs sitemap</a><span class="badge">primary</span></p></li>
+  </ol>
+
+  <footer>
+    <p>Written for one reader working through the Object Storage notes (start at the <a href="./">Object Storage Hub</a>). Numbers are as reported by their sources on the dates shown. Nothing here was independently audited.</p>
+  </footer>
+</main>
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('.filters button'));
+  var events = Array.prototype.slice.call(document.querySelectorAll('.event'));
+  var count = document.getElementById('count');
+  var active = new Set();
+
+  function render() {
+    var shown = 0;
+    events.forEach(function (ev) {
+      var match = active.size === 0 || Array.prototype.some.call(ev.classList, function (c) { return active.has(c); });
+      ev.hidden = !match;
+      if (match) shown++;
+    });
+    buttons.forEach(function (b) {
+      var f = b.getAttribute('data-filter');
+      b.setAttribute('aria-pressed', f === 'all' ? String(active.size === 0) : String(active.has(f)));
+    });
+    count.textContent = shown + ' of ' + events.length + ' events shown';
+  }
+
+  buttons.forEach(function (b) {
+    b.addEventListener('click', function () {
+      var f = b.getAttribute('data-filter');
+      if (f === 'all') { active.clear(); }
+      else if (active.has(f)) { active.delete(f); }
+      else { active.add(f); }
+      render();
+    });
+  });
+  render();
+})();
+</script>
+</body>
+</html>

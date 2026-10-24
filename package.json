@@ -1,0 +1,23 @@
+{
+  "name": "design-research",
+  "private": true,
+  "description": "Public library of research notes and project design files, built to static HTML for GitHub Pages.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "check": "node tools/check.mjs",
+    "preview": "node tools/serve.mjs",
+    "dev": "node tools/build.mjs && node tools/check.mjs && node tools/serve.mjs"
+  },
+  "devDependencies": {
+    "@fontsource-variable/archivo": "5.3.0",
+    "@fontsource-variable/literata": "5.3.0",
+    "markdown-it": "15.0.3",
+    "markdown-it-anchor": "10.0.0",
+    "markdown-it-footnote": "4.0.0",
+    "mermaid": "12.2.0"
+  }
+}
